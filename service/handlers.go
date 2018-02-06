@@ -44,12 +44,9 @@ func GetAccount(c *gin.Context, db *gorm.DB) {
 
 	listAccount := func() error {
 		var res Account
-
 		if err := db.First(&res, accountID).Error; err != nil {
 			return err
-			// return errors.New("No account found")
 		}
-
 		c.JSON(http.StatusOK, res)
 		return nil
 	}
@@ -66,15 +63,14 @@ func GetAccount(c *gin.Context, db *gorm.DB) {
 }
 
 func GetPayments(c *gin.Context, db *gorm.DB) {
-	if err := func() error {
-		var payments []Payment
-		query := db
-		accountID, filterByAccount := c.GetQuery("account_id")
-		if filterByAccount {
-			query = db.Where("account_id = ?", accountID)
-		}
-		return getObjects(c, query, &payments)
-	}(); err != nil {
+	accountID, filterByAccount := c.GetQuery("account_id")
+	query := db
+	if filterByAccount {
+		query = db.Where("account_id = ?", accountID)
+	}
+
+	var payments []Payment
+	if err := getObjects(c, query, &payments); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 }
@@ -89,7 +85,7 @@ func validatePaymentPayload(c *gin.Context, payment *Payment) error {
 	if payment.AccountFromID > 0 && payment.AccountToID > 0 {
 		return errors.New("Both source and destination accounts are specified")
 	}
-	sourceID, destID := payment.SourceDestinationID()
+	sourceID, destID := payment.SourceID(), payment.DestinationID()
 	if sourceID == destID {
 		return errors.New("Source and destination accounts are the same")
 	}
@@ -118,13 +114,12 @@ func Submit(c *gin.Context, db *gorm.DB) {
 
 	txn := db.Begin()
 	if err := func() error {
-		sourceID, destID := payment.SourceDestinationID()
-		fmt.Println(sourceID, destID, payment)
+		sourceID, destID := payment.SourceID(), payment.DestinationID()
 		if err := db.First(&sourceAccount, sourceID).Error; err != nil {
-			return fmt.Errorf("No account with ID=%d", sourceAccount.ID)
+			return fmt.Errorf("No account with ID=%d", sourceID)
 		}
 		if err := db.First(&destAccount, destID).Error; err != nil {
-			return fmt.Errorf("No account with ID=%d", sourceAccount.ID)
+			return fmt.Errorf("No account with ID=%d", destID)
 		}
 
 		payment.Direction = "outgoing"

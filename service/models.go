@@ -38,15 +38,24 @@ func (p *Payment) Transfer(source *Account, dest *Account) error {
 	return nil
 }
 
-func (p *Payment) SourceDestinationID() (uint, uint) {
+func (p *Payment) SourceID() uint {
 	if p.AccountFromID > 0 {
-		return p.AccountFromID, p.AccountID
+		return p.AccountFromID
 	}
 	if p.AccountToID > 0 {
-		return p.AccountID, p.AccountToID
+		return p.AccountID
 	}
+	return 0
+}
 
-	return 0, 0
+func (p *Payment) DestinationID() uint {
+	if p.AccountFromID > 0 {
+		return p.AccountID
+	}
+	if p.AccountToID > 0 {
+		return p.AccountToID
+	}
+	return 0
 }
 func (p Payment) InversePayment() (res Payment) {
 	if p.AccountFromID > 0 {

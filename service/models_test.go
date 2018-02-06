@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSourceDestinationID(t *testing.T) {
+func TestSourceAndDestinationID(t *testing.T) {
 	tables := []struct {
 		ID     uint
 		srcID  uint
@@ -21,7 +21,7 @@ func TestSourceDestinationID(t *testing.T) {
 
 	for _, table := range tables {
 		transfer := &Payment{AccountID: table.ID, AccountToID: table.destID, AccountFromID: table.srcID}
-		srcID, destID := transfer.SourceDestinationID()
+		srcID, destID := transfer.SourceID(), transfer.DestinationID()
 		if srcID != table.source || destID != table.destination {
 			t.Errorf("Wrong source/destination IDs in %s", transfer)
 		}
