@@ -12,7 +12,7 @@ Endpoints:
 
 ## Installation
 
-Install as simple as:
+Installation is as simple as:
 
 ```
 $ go get -u github.com/rampage644/payments
@@ -72,6 +72,19 @@ Start service with `--connect` string (replace IP address with actual one):
 $ $GOPATH/bin/service --connect 'root:secret@(172.17.0.2:3306)/test?charset=utf8&parseTime=True&loc=Local'
 ```
 
+Another option is to run it in Docker container. First build the image:
+
+```
+$ cd $GOPATH/src/github.com/rampage644/payments/service
+$ docker build . -t service:latest
+```
+
+Then, run service with the connect string:
+
+```
+$ docker run service:latest --name service /go/bin/service --connect 'root:secret@(172.17.0.2:3306)/test?charset=utf8&parseTime=True&loc=Local'
+```
+
 Insert some test data into database:
 
 ```
@@ -90,10 +103,17 @@ Query OK, 1 row affected (0.01 sec)
 
 ```
 
-Test its API:
+Test its API. If run inside a docker container, get container IP address first:
 
 ```
-$ pip install http
+$ docker inspect service | grep IPAddress
+```
+
+And use it instead of `localhost`.
+
+```
+$ pip install httpie
+
 $ http GET localhost:8080/v1/accounts
 HTTP/1.1 200 OK
 Content-Length: 426
