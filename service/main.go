@@ -10,8 +10,9 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+// setupDatabase opens database "connection" (connection pool to be more
+// strict) and migrates schema
 func setupDatabase(dialect string, connect string) (*gorm.DB, error) {
-	// db, err := gorm.Open("sqlite3", "accounts.db")
 	log.Printf("Using %s dialect, connection string is %s", dialect, connect)
 	db, err := gorm.Open(dialect, connect)
 	if err != nil {
@@ -20,12 +21,18 @@ func setupDatabase(dialect string, connect string) (*gorm.DB, error) {
 	db.AutoMigrate(&Account{})
 	db.AutoMigrate(&Payment{})
 
+	// As `gorm` doesn't have constraints we have to do this manually,
+	// there is open PR for that.
+	// This will not work with sqlite3 as it expects CONSTRAINTs to be defined
+	// during CREATE TABLE statement.
 	if err := db.Raw(`ALTER TABLE accounts ADD CONSTRAINT positive_balance CHECK (balance >= 0);`).Error; err != nil {
 		log.Println(err.Error())
 	}
 	return db, nil
 }
 
+// setupRouter will create GIN router engine fot http request and provide
+// handlers with a "database connection pool".
 func setupRouter(db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 

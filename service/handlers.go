@@ -10,16 +10,22 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Constant for pagination
 const (
 	itemsPerPage = 10
 	defaultPage  = 0
 )
 
+// extractOffsetFromQuery extracts offset and count from query parameters
+// It waits for page argument and translate it into offset/limit
 func extractOffsetFromQuery(c *gin.Context) (uint64, error) {
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 64)
 	return page * itemsPerPage, err
 }
 
+// getObjects is a helper function that gets a list of object from a database
+// and writes them as JSON into http response. Allows for pagination (see extractOffsetFromQuery())
+// Returns nil on success and error otherwise
 func getObjects(c *gin.Context, db *gorm.DB, out interface{}) error {
 	var offset uint64
 	var err error
@@ -34,6 +40,10 @@ func getObjects(c *gin.Context, db *gorm.DB, out interface{}) error {
 	return nil
 }
 
+// GetAccount is a handler for /account endpoint.
+// It lists all account by default or list only one if `id` query parameter is present
+// in a query string.
+// Writes results in JSON format.
 func GetAccount(c *gin.Context, db *gorm.DB) {
 	accountID, showSingleAccount := c.GetQuery("id")
 
@@ -62,6 +72,10 @@ func GetAccount(c *gin.Context, db *gorm.DB) {
 	}
 }
 
+// GetPayments is a handler for /payments endpoint.
+// It lists all payments by default or only those related to specified in a
+// querty strin `account_id`.
+// Writes results in JSON format.
 func GetPayments(c *gin.Context, db *gorm.DB) {
 	accountID, filterByAccount := c.GetQuery("account_id")
 	query := db
@@ -75,6 +89,9 @@ func GetPayments(c *gin.Context, db *gorm.DB) {
 	}
 }
 
+// validatePaymentPayoload validates payload for /payment POST endpoint.
+// See `Payment`` struct for details. Also checks source and destination IDs.
+// Returns nil on success and error otherwise.
 func validatePaymentPayload(c *gin.Context, payment *Payment) error {
 	if err := c.BindJSON(payment); err != nil {
 		return err
@@ -85,6 +102,8 @@ func validatePaymentPayload(c *gin.Context, payment *Payment) error {
 	return nil
 }
 
+// saveObjects is helper function to write objects to a database
+// Returns nil on success, error otherwise
 func saveObjects(db *gorm.DB, objs []interface{}) error {
 	for _, obj := range objs {
 		if err := db.Save(obj).Error; err != nil {
@@ -94,9 +113,11 @@ func saveObjects(db *gorm.DB, objs []interface{}) error {
 	return nil
 }
 
+// Submit is a handler for POST /payment endpoint.
+// It's the only write endpoint. Database transaction is used to guarantee integrity.
+// For non-sqlite database engines it uses database `check` constraint to ensure
+// positive balance (second check for concurrent transactions).
 func Submit(c *gin.Context, db *gorm.DB) {
-	// The only write endpoint
-	// Moreover, append only for payments and updates only (no insert/delete ops) for accounts
 	var payment Payment
 	var sourceAccount, destAccount Account
 
@@ -134,6 +155,8 @@ func Submit(c *gin.Context, db *gorm.DB) {
 		txn.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	} else {
+		// We still can fail here: transaction can fail even if previous
+		// programmatic balance check succeeds.
 		if err := txn.Commit().Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		} else {

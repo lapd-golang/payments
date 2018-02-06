@@ -52,19 +52,8 @@ func (p *Payment) Transfer(source *Account, dest *Account) error {
 	return nil
 }
 
-func (p Payment) InversePayment() (res Payment) {
-	if p.AccountFromID > 0 {
-		res.AccountID = p.AccountFromID
-		res.AccountToID = p.AccountID
-	}
-	if p.AccountToID > 0 {
-		res.AccountID = p.AccountToID
-		res.AccountFromID = p.AccountID
-	}
-	res.Amount = p.Amount
-	return res
-}
-
+// Outgoing returns `outgoing` payment to be recorded.
+// It makes sure only relevant to outgoing payment information is output.
 func (p Payment) Outgoing() (res Payment) {
 	res.AccountID = p.AccountFromID
 	res.AccountToID = p.AccountToID
@@ -73,6 +62,8 @@ func (p Payment) Outgoing() (res Payment) {
 	return res
 }
 
+// Incoming returns `incoming` payment to be recorded.
+// It makes sure only relevant to incoming payment information is output.
 func (p Payment) Incoming() (res Payment) {
 	res.AccountID = p.AccountToID
 	res.AccountFromID = p.AccountFromID
