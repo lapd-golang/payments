@@ -19,9 +19,22 @@ $ go get -u github.com/rampage644/payments
 $ go get -u github.com/golang/dep/cmd/dep
 $ cd $GOPATH/src/github.com/rampage644/payments
 $ dep ensure
+$ cd -
 
 $ go install github.com/rampage644/payments/service
 ```
+
+# Usage
+
+Application could be run with:
+
+```
+$ $GOPATH/bin/service --dialect mysql --connect 'connection_string'
+```
+
+It accepts `--connect` and `--dialect` switches to specify dialect (database) and connection string (database specific). See more at <http://gorm.io/database.html#connecting-to-a-database>.
+
+
 
 ## Development
 
