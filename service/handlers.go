@@ -17,17 +17,17 @@ const (
 )
 
 // extractOffsetFromQuery extracts offset and count from query parameters
-// It waits for page argument and translate it into offset/limit
-func extractOffsetFromQuery(c *gin.Context) (uint64, error) {
+// It waits for page argument and translate it into offset
+func extractOffsetFromQuery(c *gin.Context) (int, error) {
 	page, err := strconv.ParseUint(c.DefaultQuery("page", "0"), 10, 64)
-	return page * itemsPerPage, err
+	return int(page * itemsPerPage), err
 }
 
 // getObjects is a helper function that gets a list of object from a database
 // and writes them as JSON into http response. Allows for pagination (see extractOffsetFromQuery())
 // Returns nil on success and error otherwise
 func getObjects(c *gin.Context, db *gorm.DB, out interface{}) error {
-	var offset uint64
+	var offset int
 	var err error
 	if offset, err = extractOffsetFromQuery(c); err != nil {
 		return err
