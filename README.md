@@ -8,14 +8,19 @@ Endpoints:
 
  - GET `v1/accounts` lists all accounts. `page` and `id` are recognized as query parameters
  - GET `v1/payments` lists all payments. `page` and `account_id` are recognized as query parameters
- - POST `v1/payments` submit a payment. Expects `applicatio/json` payload with `from_account`, `to_account` and `amount` fields.
+ - POST `v1/payments` submit a payment. Expects `application/json` payload with `from_account`, `to_account` and `amount` fields.
 
 ## Installation
 
 Install as simple as:
 
 ```
-go install github.com/rampage644/payments
+$ go get -u github.com/rampage644/payments
+$ go get -u github.com/golang/dep/cmd/dep
+$ cd $GOPATH/src/github.com/rampage644/payments
+$ dep ensure
+
+$ go install github.com/rampage644/payments/service
 ```
 
 ## Development
