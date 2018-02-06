@@ -241,12 +241,12 @@ func TestSubmitSuccess(t *testing.T) {
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}
 
 	sql.ExpectBegin()
-	sql.ExpectQuery(`SELECT \* FROM .+ WHERE .+ "accounts"\."id" =`).
-		WithArgs(1, 1).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(1, time.Time{}, time.Time{}, nil, "alice", 155.0, "USD"))
-	sql.ExpectQuery(`SELECT \* FROM .+ "accounts"\."id" =`).
-		WithArgs(2, 2).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(2).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(2, time.Time{}, time.Time{}, nil, "bob", 5.0, "USD"))
 	sql.ExpectExec(`UPDATE "accounts" SET`).
@@ -284,12 +284,12 @@ func TestSubmitCommitFailure(t *testing.T) {
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}
 
 	sql.ExpectBegin()
-	sql.ExpectQuery(`SELECT \* FROM .+ WHERE .+ "accounts"\."id" =`).
-		WithArgs(1, 1).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(1, time.Time{}, time.Time{}, nil, "alice", 155.0, "USD"))
-	sql.ExpectQuery(`SELECT \* FROM .+ "accounts"\."id" =`).
-		WithArgs(2, 2).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(2).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(2, time.Time{}, time.Time{}, nil, "bob", 5.0, "USD"))
 	sql.ExpectExec(`UPDATE "accounts" SET`).
@@ -328,12 +328,12 @@ func TestSubmitError(t *testing.T) {
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}
 
 	sql.ExpectBegin()
-	sql.ExpectQuery(`SELECT \* FROM .+ WHERE .+ "accounts"\."id" =`).
-		WithArgs(1, 1).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(1, time.Time{}, time.Time{}, nil, "alice", 155.0, "USD"))
-	sql.ExpectQuery(`SELECT \* FROM .+ "accounts"\."id" =`).
-		WithArgs(2, 2).
+	sql.ExpectQuery(`SELECT \* FROM "accounts"  WHERE .+ "accounts"\."id"`).
+		WithArgs(2).
 		WillReturnRows(sqlmock.NewRows(aColumns).
 			AddRow(2, time.Time{}, time.Time{}, nil, "bob", 5.0, "EUR"))
 	sql.ExpectRollback()

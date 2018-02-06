@@ -93,7 +93,7 @@ func TestRealListAllAccounts(t *testing.T) {
 	engine.ServeHTTP(w, req)
 
 	if w.Code != 200 {
-		t.Errorf("Response code should be %d, was: %d", http.StatusOK, w.Code)
+		t.Errorf("Response code should be %d, was: %d error: %s", http.StatusOK, w.Code, w.Body)
 	}
 	var respBody []Account
 	if err := json.Unmarshal(w.Body.Bytes(), &respBody); err != nil {
@@ -246,7 +246,7 @@ func TestRealSubmitError(t *testing.T) {
 		engine.ServeHTTP(w, req)
 
 		if w.Code != http.StatusBadRequest {
-			t.Errorf("Response code should be %d, was: %d (%s)", http.StatusBadRequest, w.Code, w.Body)
+			t.Errorf("Response code for %s should be %d, was: %d (%s)", testCase, http.StatusBadRequest, w.Code, w.Body)
 		}
 	}
 }

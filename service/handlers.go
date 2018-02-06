@@ -20,22 +20,26 @@ func extractOffsetFromQuery(c *gin.Context) (uint64, error) {
 	return page * itemsPerPage, err
 }
 
+func getObjects(c *gin.Context, db *gorm.DB, out interface{}) error {
+	var offset uint64
+	var err error
+	if offset, err = extractOffsetFromQuery(c); err != nil {
+		return err
+	}
+
+	if err := db.Offset(offset).Limit(itemsPerPage).Find(out).Error; err != nil {
+		return err
+	}
+	c.JSON(http.StatusOK, out)
+	return nil
+}
+
 func GetAccount(c *gin.Context, db *gorm.DB) {
 	accountID, showSingleAccount := c.GetQuery("id")
 
 	listAllAccounts := func() error {
-		var offset uint64
-		var err error
-		if offset, err = extractOffsetFromQuery(c); err != nil {
-			return err
-		}
-
 		var accounts []Account
-		if err := db.Offset(offset).Limit(itemsPerPage).Find(&accounts).Error; err != nil {
-			return err
-		}
-		c.JSON(http.StatusOK, accounts)
-		return nil
+		return getObjects(c, db, &accounts)
 	}
 
 	listAccount := func() error {
@@ -63,88 +67,79 @@ func GetAccount(c *gin.Context, db *gorm.DB) {
 
 func GetPayments(c *gin.Context, db *gorm.DB) {
 	if err := func() error {
-		var offset uint64
-		var err error
-		if offset, err = extractOffsetFromQuery(c); err != nil {
-			return err
-		}
-
+		var payments []Payment
 		query := db
 		accountID, filterByAccount := c.GetQuery("account_id")
 		if filterByAccount {
 			query = db.Where("account_id = ?", accountID)
 		}
-
-		var payments []Payment
-		if err := query.Offset(offset).Limit(itemsPerPage).Find(&payments).Error; err != nil {
-			return err
-		}
-		c.JSON(http.StatusOK, payments)
-		return nil
+		return getObjects(c, query, &payments)
 	}(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 }
 
+func validatePaymentPayload(c *gin.Context, payment *Payment) error {
+	if err := c.BindJSON(payment); err != nil {
+		return err
+	}
+	if payment.AccountFromID == 0 && payment.AccountToID == 0 {
+		return errors.New("Source or destination account is required")
+	}
+	if payment.AccountFromID > 0 && payment.AccountToID > 0 {
+		return errors.New("Both source and destination accounts are specified")
+	}
+	sourceID, destID := payment.SourceDestinationID()
+	if sourceID == destID {
+		return errors.New("Source and destination accounts are the same")
+	}
+	return nil
+}
+
+func saveObjects(db *gorm.DB, objs []interface{}) error {
+	for _, obj := range objs {
+		if err := db.Save(obj).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Submit(c *gin.Context, db *gorm.DB) {
 	// The only write endpoint
 	// Moreover, append only for payments and updates only (no insert/delete ops) for accounts
-	var transfer Payment
+	var payment Payment
 	var sourceAccount, destAccount Account
 
-	if err := func() error {
-		if err := c.BindJSON(&transfer); err != nil {
-			return err
-		}
-		if transfer.AccountFromID == 0 && transfer.AccountToID == 0 {
-			return errors.New("Source or destination account is required")
-		}
-		if transfer.AccountFromID > 0 && transfer.AccountToID > 0 {
-			return errors.New("Both source and destination accounts are specified")
-		}
-		// TODO: problem with dest_account -> wrong direction
-		sourceAccount.ID, destAccount.ID = transfer.SourceDestinationID()
-		if sourceAccount.ID == destAccount.ID {
-			return errors.New("Source and destination accounts are the same")
-		}
-		return nil
-	}(); err != nil {
+	if err := validatePaymentPayload(c, &payment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	txn := db.Begin()
 	if err := func() error {
-		if err := db.First(&sourceAccount, sourceAccount.ID).Error; err != nil {
+		sourceID, destID := payment.SourceDestinationID()
+		fmt.Println(sourceID, destID, payment)
+		if err := db.First(&sourceAccount, sourceID).Error; err != nil {
 			return fmt.Errorf("No account with ID=%d", sourceAccount.ID)
 		}
-		if err := db.First(&destAccount, destAccount.ID).Error; err != nil {
+		if err := db.First(&destAccount, destID).Error; err != nil {
 			return fmt.Errorf("No account with ID=%d", sourceAccount.ID)
 		}
-		if sourceAccount.Currency != destAccount.Currency {
-			return errors.New("Different currencies")
-		}
-		// Cheap balance check here
-		if sourceAccount.Balance < transfer.Amount {
-			return errors.New("Not enough balance")
-		}
 
-		sourceAccount.Balance -= transfer.Amount
-		destAccount.Balance += transfer.Amount
+		payment.Direction = "outgoing"
+		if err := payment.Transfer(&sourceAccount, &destAccount); err != nil {
+			return err
+		}
+		sndPayment := payment.InversePayment()
+		sndPayment.Direction = "incoming"
 
-		if err := db.Save(&sourceAccount).Error; err != nil {
-			return err
-		}
-		if err := db.Save(&destAccount).Error; err != nil {
-			return err
-		}
-		transfer.Direction = "outgoing"
-		if err := db.Save(&transfer).Error; err != nil {
-			return err
-		}
-		sndTransfer := transfer.InversePayment()
-		sndTransfer.Direction = "incoming"
-		if err := db.Save(&sndTransfer).Error; err != nil {
+		if err := saveObjects(db, []interface{}{
+			&sourceAccount,
+			&destAccount,
+			&payment,
+			&sndPayment,
+		}); err != nil {
 			return err
 		}
 

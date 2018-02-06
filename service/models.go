@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -20,6 +22,20 @@ type Payment struct {
 	Direction     string
 	AccountToID   uint `json:"dest_account"`
 	AccountFromID uint `json:"src_account"`
+}
+
+func (p *Payment) Transfer(source *Account, dest *Account) error {
+	if source.Currency != dest.Currency {
+		return errors.New("Different currencies")
+	}
+	// Cheap balance check here
+	if source.Balance < p.Amount {
+		return errors.New("Not enough balance")
+	}
+
+	source.Balance -= p.Amount
+	dest.Balance += p.Amount
+	return nil
 }
 
 func (p *Payment) SourceDestinationID() (uint, uint) {
