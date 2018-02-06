@@ -175,7 +175,7 @@ func TestRealSubmitSuccess(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"account":1, "amount":50.0, "dest_account":2}`))
+	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"from_account":1, "amount":50.0, "to_account":2}`))
 	w := httptest.NewRecorder()
 
 	engine.ServeHTTP(w, req)
@@ -229,15 +229,12 @@ func TestRealSubmitError(t *testing.T) {
 	defer functionalTearDown(db, engine)
 
 	testCases := []string{
-		`{"account":1, "amount":500.0, "dest_account":2}`, // Not enough balance
-		`{"account":1, "amount":5.0, "dest_account":1}`,   // Same destination
-		`{"account":1, "amount":5.0, "src_account":1}`,    // Same destination
-		`{"account":1, "amount":5.0, "src_account":100}`,  // Wrong account
-		`{"account":100, "amount":5.0, "src_account":1}`,  // Wrong account
-		`{"account":100, "amount":5.0, "dest_account":1}`, // Wrong account
-		`{"account":2, "amount":5.0, "dest_account":100}`, // Wrong account
-		`{"account":1, "amount":5.0, "dest_account":3}`,   // Different currencies
-		`{"account":1, "amount":5.0, "src_account":3}`,    // Different currencies
+		`{"from_account":1, "amount":500.0, "to_account":2}`, // Not enough balance
+		`{"from_account":1, "amount":5.0, "to_account":1}`,   // Same destination
+		`{"to_account":1, "amount":5.0, "from_account":100}`, // Wrong account
+		`{"to_account":100, "amount":5.0, "from_account":1}`, // Wrong account
+		`{"from_account":1, "amount":5.0, "to_account":3}`,   // Different currencies
+		`{"to_account":1, "amount":5.0, "from_account":3}`,   // Different currencies
 	}
 
 	for _, testCase := range testCases {

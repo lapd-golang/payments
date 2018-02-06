@@ -211,12 +211,11 @@ func TestSubmitWrongRequest(t *testing.T) {
 	engine := setupRouter(db)
 
 	testCases := []string{
-		`{"account":1, "amount":50.0, "dest_account":1}`,
-		`{"account":1, "amoun3t":50.0, "dest_account":1}`,
-		`{"account":1, "amount":50.0, "src_account":2, "dest_account":2}`,
-		`{"account":1, "amount":50.0, "src_account":1}`,
-		`{"account":1, "amount":50.0}`,
-		`{"account2":1, "amount":50.0}`,
+		`{"account":1, "amount":50.0, "to_account":1}`,
+		`{"account":1, "amoun3t":50.0, "to_account":1}`,
+		`{"to_a2ccount":1, "amount":50.0, "from_account":1}`,
+		`{"to_account":1, "amount":50.0}`,
+		`{"from_account2":1, "amount":50.0}`,
 	}
 
 	for _, payload := range testCases {
@@ -235,7 +234,7 @@ func TestSubmitSuccess(t *testing.T) {
 	defer tearDown(db)
 	engine := setupRouter(db)
 
-	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"account":1, "amount":50.0, "dest_account":2}`))
+	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"from_account":1, "amount":50.0, "to_account":2}`))
 	w := httptest.NewRecorder()
 	aColumns := []string{"id", "created_at", "updated_at", "deleted_at", "owner", "balance", "currency"}
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}
@@ -278,7 +277,7 @@ func TestSubmitCommitFailure(t *testing.T) {
 	defer tearDown(db)
 	engine := setupRouter(db)
 
-	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"account":1, "amount":50.0, "dest_account":2}`))
+	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"from_account":1, "amount":50.0, "to_account":2}`))
 	w := httptest.NewRecorder()
 	aColumns := []string{"id", "created_at", "updated_at", "deleted_at", "owner", "balance", "currency"}
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}
@@ -322,7 +321,7 @@ func TestSubmitError(t *testing.T) {
 	defer tearDown(db)
 	engine := setupRouter(db)
 
-	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"account":1, "amount":50.0, "dest_account":2}`))
+	req, _ := http.NewRequest("POST", "/v1/payments", bytes.NewBufferString(`{"from_account":1, "amount":50.0, "to_account":2}`))
 	w := httptest.NewRecorder()
 	aColumns := []string{"id", "created_at", "updated_at", "deleted_at", "owner", "balance", "currency"}
 	// pColumns := []string{"id", "created_at", "updated_at", "deleted_at", "account_id", "amount", "direction", "account_to_id", "account_from_id"}

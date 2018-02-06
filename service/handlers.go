@@ -79,14 +79,7 @@ func validatePaymentPayload(c *gin.Context, payment *Payment) error {
 	if err := c.BindJSON(payment); err != nil {
 		return err
 	}
-	if payment.AccountFromID == 0 && payment.AccountToID == 0 {
-		return errors.New("Source or destination account is required")
-	}
-	if payment.AccountFromID > 0 && payment.AccountToID > 0 {
-		return errors.New("Both source and destination accounts are specified")
-	}
-	sourceID, destID := payment.SourceID(), payment.DestinationID()
-	if sourceID == destID {
+	if payment.AccountFromID == payment.AccountToID {
 		return errors.New("Source and destination accounts are the same")
 	}
 	return nil
@@ -114,7 +107,7 @@ func Submit(c *gin.Context, db *gorm.DB) {
 
 	txn := db.Begin()
 	if err := func() error {
-		sourceID, destID := payment.SourceID(), payment.DestinationID()
+		sourceID, destID := payment.AccountFromID, payment.AccountToID
 		if err := db.First(&sourceAccount, sourceID).Error; err != nil {
 			return fmt.Errorf("No account with ID=%d", sourceID)
 		}
@@ -122,18 +115,16 @@ func Submit(c *gin.Context, db *gorm.DB) {
 			return fmt.Errorf("No account with ID=%d", destID)
 		}
 
-		payment.Direction = "outgoing"
 		if err := payment.Transfer(&sourceAccount, &destAccount); err != nil {
 			return err
 		}
-		sndPayment := payment.InversePayment()
-		sndPayment.Direction = "incoming"
+		fromPayment, toPayment := payment.Outgoing(), payment.Incoming()
 
 		if err := saveObjects(db, []interface{}{
 			&sourceAccount,
 			&destAccount,
-			&payment,
-			&sndPayment,
+			&fromPayment,
+			&toPayment,
 		}); err != nil {
 			return err
 		}
